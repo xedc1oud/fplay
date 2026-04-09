@@ -117,6 +117,31 @@ def fmt_duration(seconds: int) -> str:
     return f"{m}:{s:02}"
 
 
+def play(source_url: str):
+    typer.echo(typer.style("[*] Fetching stream...", fg=typer.colors.GREEN))
+    ydl_opts = {"quiet": True, "no_warnings": True}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(source_url, download=False)
+        formats = info.get("formats") or []
+        if not formats:
+            typer.echo(typer.style("[!] No formats found.", fg=typer.colors.RED))
+            return
+        best = max(formats, key=lambda f: f.get("height") or 0)
+        url = best.get("url", source_url)
+        headers = best.get("http_headers", {})
+
+    args = ["mpv", "--fs", "--really-quiet"]
+    ua = headers.get("User-Agent")
+    if ua:
+        args += [f"--user-agent={ua}"]
+    for k, v in headers.items():
+        if k.lower() != "user-agent":
+            args += [f"--http-header-fields={k}: {v}"]
+    args.append(url)
+
+    subprocess.run(args)
+
+
 def draw(stdscr, infos):
     curses.curs_set(0)
     curses.start_color()
@@ -207,7 +232,7 @@ def main(query: str = typer.Argument(None, help="Search query")):
 
     if url_to_play:
         typer.echo(typer.style(f"[>] Playing: {url_to_play}", fg=typer.colors.CYAN))
-        subprocess.run(["mpv", "--fs", "--ytdl", "--really-quiet", url_to_play])
+        play(url_to_play)
 
 
 if __name__ == "__main__":
