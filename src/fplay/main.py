@@ -15,7 +15,7 @@ MAX_LINKS = 5
 app = typer.Typer()
 
 
-async def ensure_browsers():
+async def ensure_chromium():
     try:
         async with async_playwright() as p:
             await p.chromium.launch(headless=True)
