@@ -15,12 +15,19 @@ MAX_LINKS = 5
 app = typer.Typer()
 
 
-def ensure_chromium():
-    import shutil
-
-    if not shutil.which("chromium") and not shutil.which("chromium-browser"):
-        typer.echo(typer.style("[*] Installing chromium...", fg=typer.colors.YELLOW))
-        subprocess.run(["playwright", "install", "chromium"], check=True)
+async def ensure_browsers():
+    try:
+        async with async_playwright() as p:
+            await p.chromium.launch(headless=True)
+    except Exception as e:
+        if "Executable doesn't exist" in str(e):
+            print("[!] Browsers not found. Starting installation...")
+            subprocess.run(
+                [sys.executable, "-m", "playwright", "install", "chromium"], check=True
+            )
+            print("[+] Installation completed successfully!")
+        else:
+            raise e
 
 
 def clean_url(url: str) -> str:
